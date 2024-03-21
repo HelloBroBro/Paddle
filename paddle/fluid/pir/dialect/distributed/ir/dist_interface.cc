@@ -1,4 +1,4 @@
-// Copyright (c) 2024 PaddlePaddle Authors. All Rights Reserved.
+// Copyright (c) 2023 PaddlePaddle Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,20 +11,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#pragma once
 
-#include "paddle/pir/include/core/program.h"
+#include "paddle/fluid/pir/dialect/distributed/ir/dist_interface.h"
 
-namespace paddle {
-namespace dialect {
+namespace paddle::dialect {}  // namespace paddle::dialect
 
-// pir::Type ConvertOpTypeToKernelType(pir::Type op_type);
-
-TEST_API std::shared_ptr<pir::Program> MixToDistPass(pir::Program* prog);
-
-void ProcessBlock(pir::Block* block);
-
-void VerifyBlock(pir::Block* block);
-
-}  // namespace dialect
-}  // namespace paddle
+IR_DEFINE_EXPLICIT_TYPE_ID(paddle::dialect::DistTypeInterface)
