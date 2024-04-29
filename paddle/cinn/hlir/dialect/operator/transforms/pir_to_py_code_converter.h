@@ -1,4 +1,4 @@
-// Copyright (c) 2022 PaddlePaddle Authors. All Rights Reserved.
+// Copyright (c) 2024 PaddlePaddle Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,16 +14,23 @@
 
 #pragma once
 
-#include "paddle/phi/core/dense_tensor.h"
+#include <string>
 
-namespace phi {
+namespace pir {
 
-template <typename T, typename Context>
-void KLDivLossGradKernel(const Context& dev_ctx,
-                         const DenseTensor& x,
-                         const DenseTensor& label,
-                         const DenseTensor& d_out,
-                         const std::string& reduction,
-                         bool log_target,
-                         DenseTensor* d_x);
-}  // namespace phi
+class Program;
+
+}
+
+namespace cinn::dialect::ir {
+
+class PirToPyCodeConverter {
+ public:
+  PirToPyCodeConverter() = default;
+  PirToPyCodeConverter(const PirToPyCodeConverter&) = delete;
+  PirToPyCodeConverter(PirToPyCodeConverter&&) = delete;
+
+  std::string Convert(const pir::Program& program) const;
+};
+
+}  // namespace cinn::dialect::ir
