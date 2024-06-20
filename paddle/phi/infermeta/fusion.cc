@@ -295,10 +295,13 @@ void BlockMultiheadAttentionInferMeta(const MetaTensor& qkv,
   const int total_num_head = qkv.dims()[qkv.dims().size() - 1] / dim_head;
   const int q_num_head = total_num_head - 2 * kv_num_head;
 
-  PADDLE_ENFORCE_EQ(q_num_head % kv_num_head,
-                    0,
-                    errors::InvalidArgument(
-                        "The q num_head must be divisible by kv_num_head"));
+  PADDLE_ENFORCE_EQ(
+      q_num_head % kv_num_head,
+      0,
+      errors::InvalidArgument(
+          "The q num_head (%d) must be divisible by kv num_head (%d)",
+          q_num_head,
+          kv_num_head));
   PADDLE_ENFORCE_EQ(
       input_dims.size(),
       2UL,
@@ -377,7 +380,11 @@ void BlockMultiheadAttentionInferMeta(const MetaTensor& qkv,
       FBADtypeCheck(qkv, "qkv", compute_dtype);
     }
     if (out_scale > 0) {
-      fmha_out->set_dtype(phi::DataType::INT8);
+      if (fabs(quant_max_bound - 127.0f) < 0.000001) {
+        fmha_out->set_dtype(phi::DataType::INT8);
+      } else if (fabs(quant_max_bound - 448.0f) < 0.000001) {
+        fmha_out->set_dtype(phi::DataType::FLOAT8_E4M3FN);
+      }
     } else {
       fmha_out->set_dtype(qkv.dtype());
     }
