@@ -12,8 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "paddle/fluid/platform/profiler.h"
+#ifdef PADDLE_WITH_XPU_KP
 
-namespace paddle {
-namespace platform {}
-}  // namespace paddle
+// Please do not modify the following code
+#if defined(__CUDA_ARCH__)
+#undef __CUDA_ARCH__
+#endif
+
+#if defined(__CUDACC__)
+#undef __CUDACC__
+#endif
+
+#if defined(__CUDA__)
+#undef __CUDA__
+#endif
+
+#if defined(__NVCC__)
+#undef __NVCC__
+#endif
+
+#include "paddle/phi/kernels/impl/sync_calc_stream_kernel_impl.h"
+
+PD_REGISTER_KERNEL(
+    sync_calc_stream, KPS, ALL_LAYOUT, phi::SyncCalcStreamKernel, float) {}
+#endif

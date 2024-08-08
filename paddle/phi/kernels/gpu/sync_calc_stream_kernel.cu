@@ -12,8 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "paddle/fluid/platform/profiler.h"
+#include "paddle/phi/kernels/impl/sync_calc_stream_kernel_impl.h"
 
-namespace paddle {
-namespace platform {}
-}  // namespace paddle
+PD_REGISTER_KERNEL(sync_calc_stream,
+                   GPU,
+                   ALL_LAYOUT,
+                   phi::SyncCalcStreamKernel,
+                   float,
+                   double,
+                   int,
+                   int64_t,
+                   phi::dtype::float16,
+                   phi::dtype::bfloat16) {}
