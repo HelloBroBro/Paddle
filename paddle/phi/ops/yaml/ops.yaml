@@ -3558,7 +3558,7 @@
   kernel :
     func : pixel_shuffle
   backward : pixel_shuffle_grad
-  # interfaces : paddle::dialect::InferSymbolicShapeInterface
+  interfaces : paddle::dialect::InferSymbolicShapeInterface
 
 - op : pixel_unshuffle
   args : (Tensor x, int downscale_factor=1, str data_format="NCHW")
@@ -5071,7 +5071,7 @@
     data_type : input
   intermediate : warprnntgrad
   backward : warprnnt_grad
-  # interfaces : paddle::dialect::InferSymbolicShapeInterface
+  interfaces : paddle::dialect::InferSymbolicShapeInterface
 
 - op : weight_dequantize
   args : (Tensor x, Tensor scale, str algo = "weight_only_int8", DataType out_dtype = DataType::FLOAT16, int group_size = -1)
