@@ -1647,16 +1647,30 @@ bool GenerateProposalsOpInferSymbolicShape(
       symbol::ShapeOrDataDimExprs{
           symbol::TensorShapeOrDataDimExprs(rpn_roi_probs_shape)});
 
-  const symbol::ShapeOrDataDimExprs &score_shape_or_data =
-      infer_context->GetShapeOrDataForValue(op->operand_source(0));
+  // NOTE(gongshaotian): In the training task, the isFakeValue() interface can
+  // be used to determine whether rpn_rois_num needs to be output. However, in
+  // the inference task of executing the old model that has already been
+  // trained, since the InferMeta() function will no longer be executed, it is
+  // impossible to determine whether rpn_rois_num is a Fake value through
+  // isFakeValue(), so it is necessary to judge based on the dimension of
+  // DenseTensor.
+  if (paddle::dialect::details::IsFakeValue(op->result(2)) ||
+      op->result(2)
+              .type()
+              .dyn_cast<paddle::dialect::DenseTensorType>()
+              .dims()
+              .size() == 0) {
+    infer_context->SetSymbolForValueByStaticShape(op->result(2));
+  } else {
+    const std::vector<symbol::DimExpr> &score_shape =
+        infer_context->GetShapeOrDataForValue(op->operand_source(0)).shape();
+    std::vector<symbol::DimExpr> rpn_rois_num_shape = {score_shape[0]};
 
-  std::vector<symbol::DimExpr> score_shape = score_shape_or_data.shape();
-  auto rpn_rois_num_shape = std::vector<symbol::DimExpr>{score_shape[0]};
-
-  infer_context->SetShapeOrDataForValue(
-      op->result(2),
-      symbol::ShapeOrDataDimExprs{
-          symbol::TensorShapeOrDataDimExprs(rpn_rois_num_shape)});
+    infer_context->SetShapeOrDataForValue(
+        op->result(2),
+        symbol::ShapeOrDataDimExprs{
+            symbol::TensorShapeOrDataDimExprs(rpn_rois_num_shape)});
+  }
 
   return true;
 }
@@ -2118,12 +2132,58 @@ bool NearestInterpOpInferSymbolicShape(
   return BicubicInterpOpInferSymbolicShape(op, infer_context);
 }
 
-// bool MaskedMultiheadAttention_OpInferSymbolicShape(pir::Operation *op,
-//                                                    pir::InferSymbolicShapeContext
-//                                                    *infer_context) {
-//   // pass
-//   return true;
-// }
+bool MaskedMultiheadAttention_OpInferSymbolicShape(
+    pir::Operation *op, pir::InferSymbolicShapeContext *infer_context) {
+  const symbol::ShapeOrDataDimExprs &x_shape_or_data =
+      infer_context->GetShapeOrDataForValue(op->operand_source(0));
+  const symbol::ShapeOrDataDimExprs &cache_kv_shape_or_data =
+      infer_context->GetShapeOrDataForValue(op->operand_source(1));
+
+  const std::vector<symbol::DimExpr> &x_shape = x_shape_or_data.shape();
+  const std::vector<symbol::DimExpr> &cache_kv_shape =
+      cache_kv_shape_or_data.shape();
+
+  std::string compute_dtype =
+      op->attribute<pir::StrAttribute>("compute_dtype").AsString();
+
+  PADDLE_ENFORCE_EQ(
+      cache_kv_shape.size(),
+      5,
+      phi::errors::InvalidArgument("The cache_kv must be 5 dims."));
+  infer_context->AddEqualCstr(cache_kv_shape[0], symbol::DimExpr(2));
+  // TODO(Luohongzhige, Buaa): add constrain for the num_head and k_num_head
+
+  symbol::DimExpr bsz = x_shape[0];
+  symbol::DimExpr dim_head = cache_kv_shape[4];
+  symbol::DimExpr k_num_head = cache_kv_shape[2];
+  symbol::DimExpr v_num_head = k_num_head;
+  symbol::DimExpr num_head =
+      (x_shape[x_shape.size() - 1] / dim_head - k_num_head - v_num_head);
+  std::vector<symbol::DimExpr> out_shape = {bsz, num_head * dim_head};
+
+  infer_context->SetShapeOrDataForValue(
+      op->result(0),
+      symbol::ShapeOrDataDimExprs{
+          symbol::TensorShapeOrDataDimExprs(out_shape)});
+
+  infer_context->SetShapeOrDataForValue(
+      op->result(1),
+      symbol::ShapeOrDataDimExprs{
+          symbol::TensorShapeOrDataDimExprs(cache_kv_shape)});
+
+  if (op->operand_source(7) != nullptr) {
+    const symbol::ShapeOrDataDimExprs &beam_cache_offset_shape_or_data =
+        infer_context->GetShapeOrDataForValue(op->operand_source(7));
+    const std::vector<symbol::DimExpr> &beam_cache_offset_shape =
+        beam_cache_offset_shape_or_data.shape();
+    infer_context->SetShapeOrDataForValue(
+        op->result(2),
+        symbol::ShapeOrDataDimExprs{
+            symbol::TensorShapeOrDataDimExprs(beam_cache_offset_shape)});
+  }
+
+  return true;
+}
 
 bool MemoryEfficientAttentionOpInferSymbolicShape(
     pir::Operation *op, pir::InferSymbolicShapeContext *infer_context) {
